@@ -5,7 +5,6 @@ import spring.ecommerce.project.dto.PaymentRequest;
 import spring.ecommerce.project.exception.ApiException;
 import spring.ecommerce.project.model.*;
 import spring.ecommerce.project.repository.PaymentRepository;
-
 @Service
 public class PaymentService {
 
@@ -29,7 +28,7 @@ public class PaymentService {
         payment.setAmount(order.getTotalAmount());
         payment.setPaymentMethod(request.paymentMethod());
 
-        // Simulation rule: COD remains pending, all other methods succeed.
+        // Simulation rule: COD remains PENDING until admin marks delivered; all other methods succeed immediately.
         if (request.paymentMethod() == PaymentMethod.COD) {
             payment.setStatus(PaymentStatus.PENDING);
         } else {
@@ -42,6 +41,14 @@ public class PaymentService {
     public Payment checkPaymentStatus(Long paymentId) {
         return paymentRepository.findById(paymentId)
                 .orElseThrow(() -> new ApiException("Payment not found"));
+    }
+
+    // CHANGED: Admin calls this when marking an order as Delivered — updates payment status to SUCCESS
+    public void markPaymentSuccessForOrder(Long orderId) {
+        paymentRepository.findByOrderId(orderId).ifPresent(payment -> {
+            payment.setStatus(PaymentStatus.SUCCESS);
+            paymentRepository.save(payment);
+        });
     }
 }
 

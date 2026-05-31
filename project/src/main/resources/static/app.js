@@ -1,6 +1,7 @@
 let token = "";
 let currentRole = "GUEST";
 let currentUserName = "";
+let currentUserAddress = ""; // CHANGED: track user address for order success message
 let allProducts = [];
 let activeCategory = "ALL";
 let loginTab = "USER";
@@ -27,7 +28,7 @@ function showPage(name) {
         target.classList.add("active");
     }
     if (name === "cart") loadCart();
-    if (name === "admin") renderAdminProductGrid();
+    if (name === "admin") { renderAdminProductGrid(); loadAdminOrders(); } // CHANGED: also load admin orders
     if (name === "home") loadFeaturedProducts();
     if (name === "orders") loadOrders();
 }
@@ -74,6 +75,7 @@ async function submitLogin() {
     showPage("home");
 }
 
+// CHANGED: Added address field, validation, and API call
 async function registerUser() {
     const firstName = document.getElementById("regFirstName").value.trim();
     const lastName = document.getElementById("regLastName").value.trim();
@@ -81,13 +83,15 @@ async function registerUser() {
     const email = document.getElementById("regEmail").value.trim();
     const password = document.getElementById("regPassword").value;
     const confirm = document.getElementById("regConfirmPassword").value;
+    const address = document.getElementById("regAddress").value.trim(); // CHANGED: read address
     const msgEl = document.getElementById("registerMessage");
 
     msgEl.className = "msg-box hidden";
     msgEl.textContent = "";
 
-    if (!firstName || !lastName || !phone || !email || !password || !confirm) {
-        showMsg(msgEl, "Please fill in all fields.", "error");
+    // CHANGED: added address to required fields check
+    if (!firstName || !lastName || !phone || !email || !password || !confirm || !address) {
+        showMsg(msgEl, "Please fill in all fields including your delivery address.", "error");
         return;
     }
     if (password !== confirm) {
@@ -95,8 +99,9 @@ async function registerUser() {
         return;
     }
 
+    // CHANGED: include address in registration payload
     const data = await api("/api/users/register", "POST", {
-        name: `${firstName} ${lastName}`, phone, email, password
+        name: `${firstName} ${lastName}`, phone, email, password, address
     });
 
     if (data.token) {
@@ -113,13 +118,19 @@ function showMsg(el, text, type) {
     el.className = `msg-box ${type}`;
 }
 
-function setSession(data) {
+// CHANGED: fetch profile after login to store user address
+async function setSession(data) {
     token = data.token;
     currentRole = data.role;
     currentUserName = data.name || "User";
     updateNavbar();
     loadFeaturedProducts();
-    if (currentRole === "USER") updateCartBadge();
+    if (currentRole === "USER") {
+        updateCartBadge();
+        // CHANGED: fetch and cache user's delivery address
+        const profile = await api("/api/users/profile", "GET", null, true);
+        currentUserAddress = profile.address || "";
+    }
 }
 
 function updateNavbar() {
@@ -148,6 +159,7 @@ function logout() {
     token = "";
     currentRole = "GUEST";
     currentUserName = "";
+    currentUserAddress = ""; // CHANGED: clear address on logout
     updateNavbar();
     showPage("home");
     loadFeaturedProducts();
@@ -194,6 +206,7 @@ function handleSearch() {
     renderProducts(filtered);
 }
 
+// CHANGED: Added quantity selector (−/+) on each product card
 function renderProducts(products) {
     const grid = document.getElementById("productGrid");
     if (!products.length) {
@@ -201,8 +214,17 @@ function renderProducts(products) {
         return;
     }
     grid.innerHTML = products.map(p => {
+        // CHANGED: qty selector + Add to Cart (was a single Add to Cart button)
+        const inStock=p.stock>0;
         const cartBtn = currentRole === "USER"
-            ? `<button class="add-cart-btn" onclick="event.stopPropagation();addProductToCart(${p.id})">Add to Cart</button>`
+            ? inStock
+                ? `<div class="qty-row">
+                     <button class="qty-btn" onclick="event.stopPropagation();changeQty(${p.id}, -1)">&#8722;</button>
+                     <span id="qty-${p.id}" class="qty-display">1</span>
+                     <button class="qty-btn" onclick="event.stopPropagation();changeQty(${p.id}, 1)">+</button>
+                     <button class="add-cart-btn" onclick="event.stopPropagation();addProductToCart(${p.id})">Add to Cart</button>
+                   </div>`
+                : `<div class="out-of-stock-tag">&#10006; Out of Stock</div>`
             : "";
         return `
         <article class="product-card">
@@ -211,19 +233,36 @@ function renderProducts(products) {
                 <div class="product-category-tag">${p.category || "General"}</div>
                 <h3>${p.name}</h3>
                 <p class="desc">${p.description || ""}</p>
-                <div class="product-price">₹${p.price}</div>
+                <div class="product-price">&#8377;${p.price}</div>
+                <div class="${inStock ? 'stock-in' : 'stock-out'}">${inStock ? '&#10003; In Stock (' + p.stock + ')' : '&#10006; Out of Stock'}</div>
                 ${cartBtn}
             </div>
         </article>`;
     }).join("");
 }
 
+// CHANGED: New helper to increment/decrement qty on product card
+function changeQty(productId, delta) {
+    const el = document.getElementById(`qty-${productId}`);
+    if (!el) return;
+    let current = parseInt(el.textContent) || 1;
+    current = Math.max(1, current + delta);
+    el.textContent = current;
+}
+
 /* ─── CART ─── */
+// CHANGED: reads qty selector value instead of always sending 1
 async function addProductToCart(productId) {
     if (currentRole !== "USER") { showPage("login"); return; }
-    await api("/api/cart/add", "POST", { productId, quantity: 1 }, true);
-    await updateCartBadge();
-    showToast("Item added to cart!");
+    const qtyEl = document.getElementById(`qty-${productId}`);
+    const quantity = qtyEl ? parseInt(qtyEl.textContent) || 1 : 1;
+    const data = await api("/api/cart/add", "POST", { productId, quantity }, true);
+    if (data.id) {
+        await updateCartBadge();
+        showToast(`${quantity} item(s) added to cart!`);
+    } else {
+        showToast(data.error || "Failed to add to cart.");
+    }
 }
 
 async function updateCartBadge() {
@@ -264,16 +303,16 @@ function renderCart(cart) {
                 <button class="remove-btn" onclick="removeCartItem(${item.id})">Remove</button>
             </div>
             <div>
-                <div class="cart-item-price">₹${item.totalPrice}</div>
+                <div class="cart-item-price">&#8377;${item.totalPrice}</div>
                 <div style="font-size:13px;color:#878787">Qty: ${item.quantity}</div>
             </div>
         </div>
     `).join("");
 
     summary.innerHTML = `
-        <div class="summary-row"><span>Price (${cart.items.length} items)</span><span>₹${cart.totalPrice}</span></div>
+        <div class="summary-row"><span>Price (${cart.items.length} items)</span><span>&#8377;${cart.totalPrice}</span></div>
         <div class="summary-row"><span>Delivery Charges</span><span style="color:#388e3c">FREE</span></div>
-        <div class="summary-row summary-total"><span>Total Amount</span><span>₹${cart.totalPrice}</span></div>
+        <div class="summary-row summary-total"><span>Total Amount</span><span>&#8377;${cart.totalPrice}</span></div>
     `;
 }
 
@@ -283,13 +322,22 @@ async function removeCartItem(itemId) {
     await updateCartBadge();
 }
 
-async function placeOrderWithCod() {
+// CHANGED: Replaced placeOrderWithCod() with placeOrderWithPayment() supporting all payment methods
+async function placeOrderWithPayment() {
+    const selected = document.querySelector('input[name="payMethod"]:checked');
+    const paymentMethod = selected ? selected.value : "COD";
+
     const order = await api("/api/orders/place", "POST", {}, true);
     if (!order.id) { showToast("Failed to place order. Check your cart."); return; }
-    await api("/api/payments/process", "POST", { orderId: order.id, paymentMethod: "COD" }, true);
+
+    const payment = await api("/api/payments/process", "POST", { orderId: order.id, paymentMethod }, true);
     await loadCart();
     await updateCartBadge();
-    showToast("Order placed successfully! Payment: Cash on Delivery.");
+
+    const methodLabel = { COD: "Cash on Delivery", CARD: "Credit/Debit Card", UPI: "UPI", NET_BANKING: "Net Banking" }[paymentMethod] || paymentMethod;
+    const address = currentUserAddress || "your registered address";
+    // CHANGED: show delivery address in success message
+    showToast(`Order placed! Payment via ${methodLabel}. Will be delivered to: ${address}`);
 }
 
 /* ─── ADMIN PRODUCTS ─── */
@@ -336,13 +384,13 @@ async function renderAdminProductGrid() {
                 <div class="product-category-tag">${p.category || "General"}</div>
                 <h3>${p.name}</h3>
                 <p class="desc">${p.description || ""}</p>
-                <div class="product-price">₹${p.price}</div>
+                <div class="product-price">&#8377;${p.price}</div>
                 <div class="admin-id-tag">ID: ${p.id}</div>
             </div>
         </article>`).join("");
 }
 
-/* ─── ORDERS ─── */
+/* ─── ORDERS (USER) ─── */
 async function loadOrders() {
     const list = document.getElementById("ordersList");
     if (currentRole !== "USER") {
@@ -373,6 +421,7 @@ function renderOrders(orders) {
         CANCELLED: "#dc2626"
     };
 
+    // CHANGED: show actual payment method in order footer instead of hardcoded "Cash on Delivery"
     list.innerHTML = orders.slice().reverse().map(order => {
         const date = new Date(order.orderDate).toLocaleDateString("en-IN", {
             day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit"
@@ -383,7 +432,7 @@ function renderOrders(orders) {
                 <img src="${item.product?.image || "https://via.placeholder.com/56?text=?"}" alt="${item.product?.name || "Item"}" onerror="this.src='https://via.placeholder.com/56?text=?'">
                 <div class="order-item-info">
                     <span class="order-item-name">${item.product?.name || "Product"}</span>
-                    <span class="order-item-meta">Qty: ${item.quantity} &nbsp;|&nbsp; ₹${item.price}</span>
+                    <span class="order-item-meta">Qty: ${item.quantity} &nbsp;|&nbsp; &#8377;${item.price}</span>
                 </div>
             </div>
         `).join("");
@@ -401,11 +450,95 @@ function renderOrders(orders) {
             </div>
             <div class="order-items-list">${itemsHtml}</div>
             <div class="order-card-footer">
-                <span class="order-total">Total: <strong>₹${order.totalAmount}</strong></span>
-                <span class="order-payment-tag">&#10003; Cash on Delivery</span>
+                <span class="order-total">Total: <strong>&#8377;${order.totalAmount}</strong></span>
+                <span class="order-payment-tag">&#10003; ${order.status === "DELIVERED" ? "Delivered" : "Order Placed"}</span>
             </div>
         </div>`;
     }).join("");
+}
+
+/* ─── ADMIN ORDERS ─── (CHANGED: All new functions below for admin order management) */
+async function loadAdminOrders() {
+    const list = document.getElementById("adminOrdersList");
+    if (!list) return;
+    if (currentRole !== "ADMIN") { list.innerHTML = "<p style='color:#878787'>Admin access only.</p>"; return; }
+    list.innerHTML = "<p style='color:#878787'>Loading orders...</p>";
+    const orders = await api("/api/orders/all", "GET", null, true);
+    renderAdminOrders(Array.isArray(orders) ? orders : []);
+}
+
+function renderAdminOrders(orders) {
+    const list = document.getElementById("adminOrdersList");
+    if (!list) return;
+    if (!orders.length) {
+        list.innerHTML = "<p style='color:#878787'>No orders found.</p>";
+        return;
+    }
+
+    const statusColor = {
+        PLACED: "#2874f0", PROCESSING: "#ff9f00", SHIPPED: "#0095ff",
+        DELIVERED: "#388e3c", CANCELLED: "#dc2626"
+    };
+
+    list.innerHTML = orders.slice().reverse().map(order => {
+        const color = statusColor[order.status] || "#878787";
+        const date = new Date(order.orderDate).toLocaleDateString("en-IN", {
+            day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit"
+        });
+        const itemsHtml = (order.items || []).map(item => `
+            <span class="admin-order-item-tag">${item.product?.name || "Product"} x${item.quantity}</span>
+        `).join("");
+
+        const isDelivered = order.status === "DELIVERED";
+        const isCancelled = order.status === "CANCELLED";
+
+        return `
+        <div class="admin-order-card">
+            <div class="order-card-header">
+                <div>
+                    <span class="order-id">Order #${order.id}</span>
+                    <span class="order-date" style="margin-left:8px">${date}</span>
+                    <span style="margin-left:10px;font-size:13px;color:#555">&#128100; ${order.user?.name || "User"}</span>
+                </div>
+                <span class="order-status-badge" style="background:${color}20;color:${color};border:1px solid ${color}40">
+                    ${order.status}
+                </span>
+            </div>
+            <div style="padding:8px 18px;font-size:13px;color:#555;flex-wrap:wrap;display:flex;gap:6px;">
+                ${itemsHtml}
+            </div>
+            <div class="order-card-footer">
+                <span class="order-total">Total: <strong>&#8377;${order.totalAmount}</strong></span>
+                <div style="display:flex;gap:10px;">
+                    ${!isDelivered && !isCancelled ? `<button class="submit-btn" style="width:auto;padding:7px 16px;font-size:13px;background:#388e3c;margin-top:0"
+                        onclick="markOrderDelivered(${order.id})">&#10003; Mark Delivered</button>` : ""}
+                    ${!isDelivered && !isCancelled ?`<button class="submit-btn danger" style="width:auto;padding:7px 16px;font-size:13px;margin-top:0"
+                        onclick="cancelOrder(${order.id})">&#10005; Cancel Order</button>` : ""}
+                </div>
+            </div>
+        </div>`;
+    }).join("");
+}
+
+async function markOrderDelivered(orderId) {
+    // Update order status to DELIVERED
+    const orderRes = await api(`/api/orders/${orderId}/status`, "PUT", { status: "DELIVERED" }, true);
+    if (!orderRes.id) { showToast("Failed to update order status."); return; }
+    // Update payment status to SUCCESS
+    await api(`/api/payments/admin/order/${orderId}/complete`, "PUT", {}, true);
+    showToast("Order marked as Delivered and payment updated to SUCCESS.");
+    loadAdminOrders();
+}
+
+async function cancelOrder(orderId) {
+     if (!confirm("Cancel this order?")) return;
+    const res = await api(`/api/orders/${orderId}/cancel`, "PUT", null, true);
+    if (res.id || res.status) {
+        showToast("Order marked as Cancelled.");
+    } else {
+        showToast(res.message || "Order cancelled.");
+    }
+    loadAdminOrders();
 }
 
 /* ─── TOAST ─── */
@@ -414,7 +547,7 @@ function showToast(message) {
     t.textContent = message;
     t.classList.remove("hidden");
     clearTimeout(showToast._timer);
-    showToast._timer = setTimeout(() => t.classList.add("hidden"), 3000);
+    showToast._timer = setTimeout(() => t.classList.add("hidden"), 4000);
 }
 
 /* ─── UTILS ─── */

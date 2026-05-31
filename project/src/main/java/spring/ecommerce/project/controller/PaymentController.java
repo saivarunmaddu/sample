@@ -8,6 +8,8 @@ import spring.ecommerce.project.model.UserEntity;
 import spring.ecommerce.project.service.AuthService;
 import spring.ecommerce.project.service.PaymentService;
 
+import java.util.Map;
+
 @RestController
 @RequestMapping("/api/payments")
 public class PaymentController {
@@ -36,6 +38,18 @@ public class PaymentController {
     ) {
         authService.requireUser(authorization);
         return paymentService.checkPaymentStatus(paymentId);
+    }
+
+    // CHANGED: Admin endpoint — marks the payment for an order as SUCCESS (called when admin marks order Delivered)
+    @PutMapping("/admin/order/{orderId}/complete")
+    public Map<String, String> completePaymentForOrder(
+            @RequestHeader("Authorization") String authorization,
+            @PathVariable Long orderId
+    ) {
+        UserEntity user = authService.requireUser(authorization);
+        authService.requireAdmin(user);
+        paymentService.markPaymentSuccessForOrder(orderId);
+        return Map.of("message", "Payment status updated to SUCCESS");
     }
 }
 

@@ -272,6 +272,32 @@ body {
     margin-top: 4px;
 }
 
+.stock-in {
+    font-size: 12px;
+    font-weight: 600;
+    color: #388e3c;
+    margin-top: 2px;
+}
+
+.stock-out {
+    font-size: 12px;
+    font-weight: 600;
+    color: #dc2626;
+    margin-top: 2px;
+}
+
+.out-of-stock-tag {
+    margin-top: 10px;
+    background: #f5f5f5;
+    color: #878787;
+    border: 1px solid #e0e0e0;
+    padding: 8px;
+    border-radius: 3px;
+    font-size: 13px;
+    font-weight: 600;
+    text-align: center;
+}
+
 .product-category-tag {
     font-size: 11px;
     color: #2874f0;
@@ -280,20 +306,54 @@ body {
 }
 
 .add-cart-btn {
-    margin-top: 10px;
     background: #ff9f00;
     color: #fff;
     border: none;
-    padding: 9px;
+    padding: 9px 12px;
     border-radius: 3px;
     font-weight: 700;
     cursor: pointer;
     font-size: 13px;
-    width: 100%;
+    flex: 1;
 }
 
 .add-cart-btn:hover {
     background: #e68e00;
+}
+
+/* CHANGED: Quantity selector styles for product cards */
+.qty-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 10px;
+}
+
+.qty-btn {
+    width: 30px;
+    height: 30px;
+    border: 1px solid #ddd;
+    background: #f5f5f5;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: bold;
+    color: #212121;
+    line-height: 1;
+    flex-shrink: 0;
+}
+
+.qty-btn:hover {
+    background: #e0e0e0;
+    border-color: #bbb;
+}
+
+.qty-display {
+    min-width: 24px;
+    text-align: center;
+    font-weight: 700;
+    font-size: 15px;
+    color: #212121;
 }
 
 /* ───── AUTH PAGES ───── */
@@ -371,6 +431,22 @@ body {
 }
 
 .auth-form input:focus {
+    border-color: #2874f0;
+}
+
+/* CHANGED: Address textarea styling to match inputs */
+.auth-textarea {
+    padding: 12px 14px;
+    border: 1px solid #e0e0e0;
+    border-radius: 4px;
+    font-size: 14px;
+    outline: none;
+    width: 100%;
+    font-family: inherit;
+    resize: none;
+}
+
+.auth-textarea:focus {
     border-color: #2874f0;
 }
 
@@ -557,11 +633,42 @@ body {
     margin-top: 6px;
 }
 
-.cod-tag {
-    color: #388e3c;
+/* CHANGED: Payment options styles replacing single COD tag */
+.payment-options {
+    margin: 14px 0 10px;
+    border: 1px solid #e0e0e0;
+    border-radius: 4px;
+    padding: 10px 12px;
+    background: #fafafa;
+}
+
+.payment-options-title {
+    font-weight: 700;
     font-size: 13px;
-    font-weight: 600;
-    margin: 10px 0;
+    color: #212121;
+    margin: 0 0 8px;
+}
+
+.pay-opt {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 0;
+    font-size: 14px;
+    cursor: pointer;
+    border-bottom: 1px solid #f0f0f0;
+    color: #333;
+}
+
+.pay-opt:last-child {
+    border-bottom: none;
+}
+
+.pay-opt input[type="radio"] {
+    accent-color: #2874f0;
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
 }
 
 /* ───── ADMIN ───── */
@@ -634,6 +741,24 @@ body {
     font-size: 11px;
     color: #878787;
     margin-top: 4px;
+}
+
+/* CHANGED: Admin order card styles */
+.admin-order-card {
+    border: 1px solid #e8e8e8;
+    border-radius: 4px;
+    margin-bottom: 12px;
+    overflow: hidden;
+    background: #fff;
+}
+
+.admin-order-item-tag {
+    background: #f0f4ff;
+    color: #2874f0;
+    border-radius: 3px;
+    padding: 3px 8px;
+    font-size: 12px;
+    font-weight: 600;
 }
 
 /* ───── ORDERS ───── */
@@ -759,6 +884,8 @@ body {
     z-index: 1000;
     box-shadow: 0 4px 16px rgba(0,0,0,0.3);
     transition: opacity 0.3s;
+    max-width: 90vw;
+    text-align: center;
 }
 
 /* ───── UTILITIES ───── */

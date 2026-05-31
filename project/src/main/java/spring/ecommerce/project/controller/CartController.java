@@ -1,6 +1,7 @@
 package spring.ecommerce.project.controller;
 
 import jakarta.validation.Valid;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import spring.ecommerce.project.dto.CartRequest;
 import spring.ecommerce.project.dto.UpdateQuantityRequest;
@@ -18,6 +19,7 @@ public class CartController {
     private final CartService cartService;
     private final AuthService authService;
 
+    @Autowired
     public CartController(CartService cartService, AuthService authService) {
         this.cartService = cartService;
         this.authService = authService;

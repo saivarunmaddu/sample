@@ -6,13 +6,13 @@ import spring.ecommerce.project.dto.UpdateOrderStatusRequest;
 import spring.ecommerce.project.exception.ApiException;
 import spring.ecommerce.project.model.*;
 import spring.ecommerce.project.repository.OrderRepository;
+import spring.ecommerce.project.repository.PaymentRepository;
 import spring.ecommerce.project.repository.ProductRepository;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
-
 @Service
 public class OrderService {
 
@@ -20,10 +20,14 @@ public class OrderService {
     private final ProductRepository productRepository;
     private final CartService cartService;
 
-    public OrderService(OrderRepository orderRepository, ProductRepository productRepository, CartService cartService) {
+
+    // CHANGED: constructor updated to include PaymentRepository
+    public OrderService(OrderRepository orderRepository, ProductRepository productRepository,
+                        CartService cartService) {
         this.orderRepository = orderRepository;
         this.productRepository = productRepository;
         this.cartService = cartService;
+
     }
 
     @Transactional
@@ -83,6 +87,20 @@ public class OrderService {
     public OrderEntity getOrderById(Long orderId) {
         return orderRepository.findById(orderId)
                 .orElseThrow(() -> new ApiException("Order not found"));
+    }
+
+    // CHANGED: Admin — fetch all orders from all users
+    public List<OrderEntity> getAllOrders() {
+        return orderRepository.findAll();
+    }
+
+    // CHANGED: Admin — cancel an order: deletes associated payments first (FK constraint), then deletes the order
+    @Transactional
+    public OrderEntity cancelOrder(Long orderId) {
+        OrderEntity order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new ApiException("Order not found"));
+        order.setStatus(OrderStatus.CANCELLED);
+        return orderRepository.save(order);
     }
 }
 

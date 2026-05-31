@@ -31,6 +31,8 @@
     <div class="topbar-right hidden" id="adminNav">
         <span class="nav-user" id="loggedInAdminName">Hello, Admin</span>
         <button class="nav-btn" onclick="showPage('admin')">Manage Products</button>
+        <!-- CHANGED: Added Orders button for admin -->
+        <button class="nav-btn outline" onclick="document.getElementById('adminOrdersList').scrollIntoView({behavior:'smooth'})">&#128230; Orders</button>
         <button class="nav-btn outline" onclick="logout()">Logout</button>
     </div>
 </header>
@@ -86,6 +88,8 @@
             <input id="regEmail" type="email" placeholder="Email">
             <input id="regPassword" type="password" placeholder="Password">
             <input id="regConfirmPassword" type="password" placeholder="Confirm Password">
+            <!-- CHANGED: Added address field -->
+            <textarea id="regAddress" placeholder="Delivery Address (House No, Street, City, State, PIN)" rows="2" class="auth-textarea"></textarea>
             <p id="registerMessage" class="hidden msg-box"></p>
             <button class="submit-btn" onclick="registerUser()">Create Account</button>
             <p class="auth-switch">Already have an account? <a href="#" onclick="showPage('login')">Login</a></p>
@@ -103,8 +107,15 @@
         <div class="cart-summary-panel">
             <h3>Price Details</h3>
             <div id="cartSummary"></div>
-            <p class="cod-tag">&#10003; Cash on Delivery available</p>
-            <button class="submit-btn" onclick="placeOrderWithCod()">Place Order</button>
+            <!-- CHANGED: Replaced single COD button with payment options -->
+            <div class="payment-options">
+                <p class="payment-options-title">Select Payment Method:</p>
+                <label class="pay-opt"><input type="radio" name="payMethod" value="COD" checked> &#128176; Cash on Delivery</label>
+                <label class="pay-opt"><input type="radio" name="payMethod" value="CARD"> &#128179; Credit / Debit Card</label>
+                <label class="pay-opt"><input type="radio" name="payMethod" value="UPI"> &#9889; UPI</label>
+                <label class="pay-opt"><input type="radio" name="payMethod" value="NET_BANKING"> &#127968; Net Banking</label>
+            </div>
+            <button class="submit-btn" onclick="placeOrderWithPayment()">Place Order</button>
         </div>
     </div>
 </main>
@@ -112,7 +123,7 @@
 <!-- PAGE: ADMIN -->
 <main id="adminPage" class="page hidden">
     <div class="admin-wrapper">
-        <h2>Product Management</h2>
+        <h2>Admin Dashboard</h2>
 
         <div class="admin-card">
             <h3>Add / Update Product</h3>
@@ -142,6 +153,12 @@
         <div class="admin-card">
             <h3>All Products</h3>
             <div id="adminProductGrid" class="product-grid"></div>
+        </div>
+
+        <!-- CHANGED: Added Order Management section for admin -->
+        <div class="admin-card">
+            <h3>&#128230; Order Management</h3>
+            <div id="adminOrdersList"><p style="color:#878787">Loading orders...</p></div>
         </div>
     </div>
 </main>
