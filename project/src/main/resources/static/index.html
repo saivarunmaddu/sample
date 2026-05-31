@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ShopSphere</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<!-- TOP NAVBAR -->
+<header class="topbar">
+    <div class="topbar-left">
+        <span class="brand" onclick="showPage('home')">ShopSphere</span>
+        <span class="tagline">Explore Plus</span>
+    </div>
+    <div class="topbar-search">
+        <input id="searchInput" type="text" placeholder="Search for products, brands and more" oninput="handleSearch()" />
+        <button class="search-btn">&#128269;</button>
+    </div>
+    <div class="topbar-right" id="guestNav">
+        <button class="nav-btn" onclick="showPage('login')">Login</button>
+        <button class="nav-btn outline" onclick="showPage('register')">Register</button>
+    </div>
+    <div class="topbar-right hidden" id="userNav">
+        <span class="nav-user" id="loggedInName">Hello, User</span>
+        <button class="nav-btn cart-btn" onclick="showPage('cart')">&#128722; Cart <span id="cartBadge" class="cart-badge hidden">0</span></button>
+        <button class="nav-btn outline" onclick="showPage('orders')">&#128230; My Orders</button>
+        <button class="nav-btn outline" onclick="logout()">Logout</button>
+    </div>
+    <div class="topbar-right hidden" id="adminNav">
+        <span class="nav-user" id="loggedInAdminName">Hello, Admin</span>
+        <button class="nav-btn" onclick="showPage('admin')">Manage Products</button>
+        <button class="nav-btn outline" onclick="logout()">Logout</button>
+    </div>
+</header>
+
+<!-- CATEGORY BAR -->
+<div class="category-bar" id="categoryBar"></div>
+
+<!-- PAGE: HOME -->
+<main id="homePage" class="page active">
+    <div class="banner">
+        <div class="banner-text">
+            <h2>Big Billion Days Sale</h2>
+            <p>Up to 80% off on top brands — Limited time offer!</p>
+            <button class="banner-cta" onclick="scrollToProducts()">Shop Now</button>
+        </div>
+    </div>
+    <div class="section-title" id="productSectionTitle">Featured Products</div>
+    <div id="productGrid" class="product-grid"></div>
+</main>
+
+<!-- PAGE: LOGIN -->
+<main id="loginPage" class="page hidden">
+    <div class="auth-wrapper">
+        <div class="auth-promo">
+            <h2>Login</h2>
+            <p>Get access to your Orders, Wishlist and Recommendations</p>
+        </div>
+        <div class="auth-form">
+            <div class="tab-row">
+                <button class="tab-btn active" id="tabUser" onclick="switchLoginTab('USER')">User Login</button>
+                <button class="tab-btn" id="tabAdmin" onclick="switchLoginTab('ADMIN')">Admin Login</button>
+            </div>
+            <input id="loginEmail" type="email" placeholder="Enter Email / Mobile number">
+            <input id="loginPassword" type="password" placeholder="Enter Password">
+            <p id="loginError" class="error-text hidden"></p>
+            <button class="submit-btn" onclick="submitLogin()">Login</button>
+            <p class="auth-switch">New to ShopSphere? <a href="#" onclick="showPage('register')">Create an account</a></p>
+        </div>
+    </div>
+</main>
+
+<!-- PAGE: REGISTER -->
+<main id="registerPage" class="page hidden">
+    <div class="auth-wrapper">
+        <div class="auth-promo">
+            <h2>Create Account</h2>
+            <p>Join millions of happy shoppers on ShopSphere</p>
+        </div>
+        <div class="auth-form">
+            <input id="regFirstName" placeholder="First Name">
+            <input id="regLastName" placeholder="Last Name">
+            <input id="regPhone" placeholder="Phone Number">
+            <input id="regEmail" type="email" placeholder="Email">
+            <input id="regPassword" type="password" placeholder="Password">
+            <input id="regConfirmPassword" type="password" placeholder="Confirm Password">
+            <p id="registerMessage" class="hidden msg-box"></p>
+            <button class="submit-btn" onclick="registerUser()">Create Account</button>
+            <p class="auth-switch">Already have an account? <a href="#" onclick="showPage('login')">Login</a></p>
+        </div>
+    </div>
+</main>
+
+<!-- PAGE: CART -->
+<main id="cartPage" class="page hidden">
+    <div class="cart-wrapper">
+        <div class="cart-items-panel">
+            <h2 class="cart-title">My Cart</h2>
+            <div id="cartList"></div>
+        </div>
+        <div class="cart-summary-panel">
+            <h3>Price Details</h3>
+            <div id="cartSummary"></div>
+            <p class="cod-tag">&#10003; Cash on Delivery available</p>
+            <button class="submit-btn" onclick="placeOrderWithCod()">Place Order</button>
+        </div>
+    </div>
+</main>
+
+<!-- PAGE: ADMIN -->
+<main id="adminPage" class="page hidden">
+    <div class="admin-wrapper">
+        <h2>Product Management</h2>
+
+        <div class="admin-card">
+            <h3>Add / Update Product</h3>
+            <div class="admin-form">
+                <input id="productName" placeholder="Product Name">
+                <input id="productDescription" placeholder="Description">
+                <input id="productPrice" placeholder="Price" type="number" step="0.01">
+                <input id="productStock" placeholder="Stock" type="number">
+                <input id="productCategory" placeholder="Category">
+                <input id="productImage" placeholder="Image URL">
+                <div class="admin-actions">
+                    <button class="submit-btn" onclick="addProduct()">Add Product</button>
+                    <input id="updateProductId" placeholder="Product ID to update" class="small-input">
+                    <button class="submit-btn secondary" onclick="updateProduct()">Update</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="admin-card">
+            <h3>Delete Product</h3>
+            <div class="admin-form">
+                <input id="deleteProductId" placeholder="Product ID to delete">
+                <button class="submit-btn danger" onclick="deleteProduct()">Delete Product</button>
+            </div>
+        </div>
+
+        <div class="admin-card">
+            <h3>All Products</h3>
+            <div id="adminProductGrid" class="product-grid"></div>
+        </div>
+    </div>
+</main>
+
+<!-- PAGE: MY ORDERS -->
+<main id="ordersPage" class="page hidden">
+    <div class="orders-wrapper">
+        <h2 class="orders-heading">My Orders</h2>
+        <div id="ordersList"></div>
+    </div>
+</main>
+
+<!-- ORDER SUCCESS TOAST -->
+<div id="toast" class="toast hidden"></div>
+
+<script src="app.js"></script>
+</body>
+</html>
