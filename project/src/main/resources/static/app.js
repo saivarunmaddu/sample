@@ -18,6 +18,7 @@ async function api(path, method = "GET", body = null, auth = false) {
 
 /* ─── NAVIGATION ─── */
 function showPage(name) {
+    history.pushState({}, "", `${name}`);
     ["homePage", "loginPage", "registerPage", "cartPage", "adminPage", "ordersPage"].forEach(id => {
         document.getElementById(id).classList.add("hidden");
         document.getElementById(id).classList.remove("active");
