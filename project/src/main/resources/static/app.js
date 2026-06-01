@@ -303,17 +303,36 @@ function renderCart(cart) {
                 <button class="remove-btn" onclick="removeCartItem(${item.id})">Remove</button>
             </div>
             <div>
-                <div class="cart-item-price">&#8377;${item.totalPrice}</div>
-                <div style="font-size:13px;color:#878787">Qty: ${item.quantity}</div>
+                <div class="cart-item-price">₹${item.totalPrice}</div>
+
+                <div class="qty-controls">
+                <button onclick="updateCartItem(${item.id}, ${item.quantity - 1})">-</button>
+                    <span>${item.quantity}</span>
+                <button onclick="updateCartItem(${item.id}, ${item.quantity + 1})"
+                    ${item.quantity >= item.product.stock ? "disabled" : ""}>
+                    +
+                </button>
+    </div>
             </div>
         </div>
     `).join("");
 
     summary.innerHTML = `
-        <div class="summary-row"><span>Price (${cart.items.length} items)</span><span>&#8377;${cart.totalPrice}</span></div>
+        <div class="summary-row"><span>Price (${cart.items.length} items)</span><span>₹${cart.totalPrice}</span></div>
         <div class="summary-row"><span>Delivery Charges</span><span style="color:#388e3c">FREE</span></div>
-        <div class="summary-row summary-total"><span>Total Amount</span><span>&#8377;${cart.totalPrice}</span></div>
+        <div class="summary-row summary-total"><span>Total Amount</span><span>₹${cart.totalPrice}</span></div>
     `;
+}
+
+async function updateCartItem(itemId, quantity) {
+    if (quantity < 1) {
+        await removeCartItem(itemId);
+        return;
+    }
+
+    await api(`/api/cart/${itemId}`, "PUT", { quantity }, true);
+    await loadCart();
+    await updateCartBadge();
 }
 
 async function removeCartItem(itemId) {
